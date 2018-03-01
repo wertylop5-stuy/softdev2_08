@@ -21,15 +21,20 @@ class Animator {
 		this.svg = v;
 		this.spd = speed;
 		
+		this.radius = 0;
 		this.elem = null;
 		this.timer = null;
 	}
 	
 	wrap(func) {
+		/*
 		let that = this;
 		return function(...args) {
 			func.apply(that, args);
 		};
+		*/
+		console.log(func);
+		func.bind(this);
 	}
 	
 	init() {
@@ -47,6 +52,7 @@ class Animator {
 	}
 	
 	pulsingCircle() {
+		console.log(this);
 		this.clear();
 		
 		this.elem = document.createElementNS(SVG_NS, "circle");
@@ -58,9 +64,10 @@ class Animator {
 		
 		let that = this;
 		this.timer = setInterval(() => {
+			that.elem.setAttribute("r", that.radius++);
 			
-			
-			if (that.radius > that.svg.clientWidth/2) {
+			if (that.radius > that.svg.clientWidth/2 ||
+				that.radius > that.svg.clientHeight/2) {
 				that.radius *= -1;
 			}
 		}, 100);
@@ -144,8 +151,11 @@ class Animator {
 	let svg = document.getElementById("boi");
 	let speed = document.getElementById("speed");
 	
-	let anim = new Animator(cvs, cvs.getContext("2d"), speed);
-	anim.init();
+	let anim = new Animator(svg, speed);
+	anim.wrap(anim.clear);
+	anim.wrap(anim.pulsingCircle);
+	anim.wrap(anim.bouncingCircle);
+	anim.wrap(anim.stopAnim);
 	
 	let start = document.getElementById("pulse");
 	let stop = document.getElementById("stop");
