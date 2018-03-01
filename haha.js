@@ -26,86 +26,67 @@ class Animator {
 		this.timer = null;
 	}
 	
-	wrap(func) {
-		/*
-		let that = this;
-		return function(...args) {
-			func.apply(that, args);
-		};
-		*/
-		console.log(func);
-		func.bind(this);
-	}
-	
-	init() {
-		for (let func in this) {
-			if (typeof this[func] === "function" && func !== "wrap") {
-				this[func] = this.wrap(this[func]);
-			}
-		}
-	}
-	
 	clear() {
 		if (this.elem !== null) {
 			this.svg.removeChild(this.elem);
 		}
+		clearInterval(this.timer);
+		this.radius = 0;
 	}
 	
 	pulsingCircle() {
-		console.log(this);
+		let cx = this.svg.getAttribute("width")/2;
+		let cy = this.svg.getAttribute("height")/2;
+		
 		this.clear();
 		
 		this.elem = document.createElementNS(SVG_NS, "circle");
-		setAttr(that.elem, {
-			cx: 0,
-			cy: 0,
+		setAttr(this.elem, {
+			cx,
+			cy,
 			r: 0,
+			fill: "BlanchedAlmond",
+			stroke: "black"
 		});
 		
+		this.svg.appendChild(this.elem);
 		let that = this;
 		this.timer = setInterval(() => {
-			that.elem.setAttribute("r", that.radius++);
+			that.elem.setAttribute("r", makePositive(that.radius++));
 			
-			if (that.radius > that.svg.clientWidth/2 ||
-				that.radius > that.svg.clientHeight/2) {
+			if (that.radius > cx || that.radius > cy) {
 				that.radius *= -1;
 			}
-		}, 100);
+		}, 10);
 		
 	}
 	
 	bouncingCircle() {
 		let that = this;
+		let maxX = this.svg.getAttribute("width");
+		let maxY = this.svg.getAttribute("height");
 		
 		let radius = 50;
-		let posX = randMax(this.cvs.width-radius);
-		let posY = randMax(this.cvs.width-radius);
+		let posX = randMax(maxX);
+		let posY = randMax(maxY);
 		let angle = randMax(2*Math.PI);
 		
 		this.clear();
 		
-		(function temp() {
-			that.stopAnim();
-			
-			//for the trail effect
-			that.ctx.beginPath();
-			that.ctx.fillStyle = `rgba(255, 255, 255, .15)`;
-			that.ctx.rect(0, 0, that.cvs.width, that.cvs.height);
-			that.ctx.fill();
-			
-			that.ctx.beginPath();
-			that.ctx.fillStyle = "BlanchedAlmond";
-			
+		this.elem = document.createElementNS(SVG_NS, "circle");
+		setAttr(this.elem, {
+			cx: posX,
+			cy: posY,
+			r: radius,
+			fill: "BlanchedAlmond",
+			stroke: "black"
+		});
+		this.svg.appendChild(that.elem);
+		
+		this.timer = setInterval(() => {
 			let vel = that.spd.value;
-			/*
-			angle pairings:
-			top: 3PI/4 5PI/4, PI/4 7PI/4
-			right: 7PI/4 5PI/4, PI/4 3PI/4
-			bottom: 5PI/4 3PI/4, 7PI/4 PI/4
-			left: 5PI/4 7PI/4, 3PI/4 PI/4
-			*/
 			
-			if (	(posX >= that.cvs.width-radius) ||
+			if (	(posX >= maxX-radius) ||
 				(posX <= 0+radius)) {
 				if (angle > Math.PI) {
 					angle = 3*Math.PI - angle;
@@ -114,7 +95,7 @@ class Animator {
 					angle = Math.PI - angle;
 				}
 			}
-			else if (	(posY >= that.cvs.height-radius) ||
+			else if (	(posY >= maxY-radius) ||
 					(posY <= 0+radius)) { 
 				angle = 2*Math.PI - angle;
 			}
@@ -122,46 +103,53 @@ class Animator {
 			posY += vel * Math.sin(angle);
 			posX += vel * Math.cos(angle);
 			
-			if (posX < 0+radius) posX = radius;
-			else if (posX > that.cvs.width-radius) {
-				posX = that.cvs.width-radius;
-			}
-			else if (posY < 0+radius) posY = radius;
-			else if (posY > that.cvs.height-radius) {
-				posY = that.cvs.height-radius;
-			}
+			that.elem.setAttribute("cx", posX);
+			that.elem.setAttribute("cy", posY);
 			
-			that.ctx.arc(posX, posY, radius, 0, 2*Math.PI);
-			that.ctx.fill();
-			that.ctx.stroke();
+			if (posX < 0+radius) {
+				posX = radius;
+			}
+			else if (posX > maxX-radius) {
+				posX = maxX-radius;
+			}
+			else if (posY < 0+radius) {
+				posY = radius;
+			}
+			else if (posY > maxY-radius) {
+				posY = maxY-radius;
+			}
+
+			that.elem.setAttribute("cx", posX);
+			that.elem.setAttribute("cy", posY);
+
 			
-			that.requestId = window.requestAnimationFrame(temp);
-		})();
+		}, 10);
 	}
 	
 	stopAnim() {
 		if (this.timer !== null) {
-			clearInterval(timer);
-			timer = null;
+			clearInterval(this.timer);
+			this.timer = null;
 		}
 	}
 }
 
-(function() {
+(() => {
 	let svg = document.getElementById("boi");
 	let speed = document.getElementById("speed");
 	
 	let anim = new Animator(svg, speed);
-	anim.wrap(anim.clear);
-	anim.wrap(anim.pulsingCircle);
-	anim.wrap(anim.bouncingCircle);
-	anim.wrap(anim.stopAnim);
-	
 	let start = document.getElementById("pulse");
 	let stop = document.getElementById("stop");
 	
-	start.addEventListener("click", anim.pulsingCircle);
-	bounce.addEventListener("click", anim.bouncingCircle);
-	stop.addEventListener("click", anim.stopAnim);
+	start.addEventListener("click", () => {
+		anim.pulsingCircle();
+	});
+	bounce.addEventListener("click", () => {
+		anim.bouncingCircle();
+	});
+	stop.addEventListener("click", () => {
+		anim.stopAnim();
+	});
 })()
 
